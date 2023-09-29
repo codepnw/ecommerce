@@ -147,7 +147,7 @@ func (c *config) App() IAppConfig {
 	return c.app
 }
 
-func (a *app) Url() string                 { return fmt.Sprintf("%s, %d", a.host, a.port) }
+func (a *app) Url() string                 { return fmt.Sprintf("%s:%d", a.host, a.port) }
 func (a *app) Name() string                { return a.name }
 func (a *app) Version() string             { return a.version }
 func (a *app) ReadTimeout() time.Duration  { return a.readTimeout }
