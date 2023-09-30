@@ -2,6 +2,7 @@ package monitorHandlers
 
 import (
 	"github.com/codepnw/ecommerce/config"
+	"github.com/codepnw/ecommerce/modules/entities"
 	"github.com/codepnw/ecommerce/modules/monitor"
 	"github.com/gofiber/fiber/v2"
 )
@@ -22,8 +23,9 @@ func MonitorHandler(cfg config.IConfig) IMonitorHandler {
 
 func (m *monitorHandler) HealthCheck(c *fiber.Ctx) error {
 	res := &monitor.Monitor{
-		Name: m.cfg.App().Name(),
-		Version:  m.cfg.App().Version(),
+		Name:    m.cfg.App().Name(),
+		Version: m.cfg.App().Version(),
 	}
-	return c.Status(fiber.StatusOK).JSON(res)
+	return entities.NewResponse(c).Success(fiber.StatusOK, res).Res()
+	// return c.Status(fiber.StatusOK).JSON(res)
 }
