@@ -64,3 +64,16 @@ type UserClaims struct {
 	Id     string `db:"id" json:"id"`
 	RoleId int    `db:"role" json:"role"`
 }
+
+type UserRefreshCredential struct {
+	RefreshToken string `json:"refresh_token" form:"refresh_token"`
+}
+
+type Oauth struct {
+	Id     string `db:"id" json:"id"`
+	UserId string `db:"user_id" json:"user_id"`
+}
+
+type UserRemoveCredential struct {
+	OauthId string `json:"oauth_id" form:"oauth_id"`
+}
