@@ -1,9 +1,12 @@
 package middlewaresHandlers
 
 import (
+	"strings"
+
 	"github.com/codepnw/ecommerce/config"
 	"github.com/codepnw/ecommerce/modules/entities"
 	"github.com/codepnw/ecommerce/modules/middlewares/middlewaresUsecases"
+	"github.com/codepnw/ecommerce/pkg/auth"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -13,12 +16,14 @@ type middlewaresErrCode string
 
 const (
 	routerCheckErr middlewaresErrCode = "middleware-001"
+	jwtAuthErr middlewaresErrCode = "middleware-002"
 )
 
 type IMiddlewaresHandlers interface {
 	Cors() fiber.Handler
 	RouterCheck() fiber.Handler
 	Logger() fiber.Handler
+	JwtAuth() fiber.Handler
 }
 
 type middlewaresHandlers struct {
@@ -61,4 +66,31 @@ func (h *middlewaresHandlers) Logger() fiber.Handler {
 		TimeFormat: "02/01/2006",
 		TimeZone: "Asia/Bangkok",
 	})
+}
+
+func (h *middlewaresHandlers) JwtAuth() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		token := strings.TrimPrefix(c.Get("Authorization"), "Bearer ")
+		result, err := auth.ParseToken(h.cfg.Jwt(), token)
+		if err != nil {
+			return entities.NewResponse(c).Error(
+				fiber.ErrUnauthorized.Code,
+				string(jwtAuthErr),
+				err.Error(),
+			).Res()
+		}
+
+		claims := result.Claims
+		if !h.usecase.FindAccessToken(claims.Id, token) {
+			return entities.NewResponse(c).Error(
+				fiber.ErrUnauthorized.Code,
+				string(jwtAuthErr),
+				"no permission to access",
+			).Res()
+		}
+
+		c.Locals("user_id", claims.Id)
+		c.Locals("userRoleId", claims.RoleId)
+		return c.Next()
+	}
 }
