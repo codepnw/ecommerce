@@ -13,6 +13,8 @@ import (
 type IUsersUsecase interface {
 	InsertCustomer(req *users.UserRegisterReq) (*users.UserPassport, error)
 	GetPassport(req *users.UserCredential) (*users.UserPassport, error)
+	RefreshPassport(req *users.UserRefreshCredential) (*users.UserPassport, error)
+	DeleteOauth(oauthId string) error
 }
 
 type usersUsecase struct {
@@ -78,5 +80,60 @@ func (u *usersUsecase) GetPassport(req *users.UserCredential) (*users.UserPasspo
 	return passport, nil
 }
 
+func (u *usersUsecase) RefreshPassport(req *users.UserRefreshCredential) (*users.UserPassport, error) {
+	claims, err := auth.ParseToken(u.cfg.Jwt(), req.RefreshToken)
+	if err != nil {
+		return nil, err
+	}
 
+	oauth, err := u.repository.FindOneOauth(req.RefreshToken)
+	if err != nil {
+		return nil, err
+	}
 
+	profile, err := u.repository.GetProfile(oauth.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	newClaims := &users.UserClaims{
+		Id: profile.Id,
+		RoleId: profile.RoleId,
+	}
+
+	accessToken, err := auth.NewEcomAuth(
+		auth.Access,
+		u.cfg.Jwt(),
+		newClaims,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken := auth.RepeatToken(
+		u.cfg.Jwt(),
+		newClaims,
+		claims.ExpiresAt.Unix(),
+	)
+	
+	passport := &users.UserPassport{
+		User: profile,
+		Token: &users.UserToken{
+			Id: oauth.Id,
+			AccessToken: accessToken.SignToken(),
+			RefreshToken: refreshToken,
+		},
+	}
+
+	if err := u.repository.UpdateOauth(passport.Token); err != nil {
+		return nil, err
+	}
+	return passport, nil
+}
+
+func (u *usersUsecase) DeleteOauth(oauthId string) error {
+	if err := u.repository.DeleteOauth(oauthId); err != nil {
+		return err
+	}
+	return nil
+}

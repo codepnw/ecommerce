@@ -11,13 +11,17 @@ import (
 type usersHandlersErrCode string
 
 const (
-	signUpCustomerErr usersHandlersErrCode = "users-001"
-	signInErr         usersHandlersErrCode = "users-002"
+	signUpCustomerErr  usersHandlersErrCode = "users-001"
+	signInErr          usersHandlersErrCode = "users-002"
+	refreshPassportErr usersHandlersErrCode = "users-003"
+	signOutErr         usersHandlersErrCode = "users-004"
 )
 
 type IUsersHandler interface {
 	SignUpCustomer(c *fiber.Ctx) error
 	SignIn(c *fiber.Ctx) error
+	RefreshPassport(c *fiber.Ctx) error
+	SignOut(c *fiber.Ctx) error
 }
 
 type usersHandler struct {
@@ -97,4 +101,47 @@ func (h *usersHandler) SignIn(c *fiber.Ctx) error {
 	}
 
 	return entities.NewResponse(c).Success(fiber.StatusOK, passport).Res()
+}
+
+func (h *usersHandler) RefreshPassport(c *fiber.Ctx) error {
+	req := new(users.UserRefreshCredential)
+	if err := c.BodyParser(req); err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrBadRequest.Code,
+			string(refreshPassportErr),
+			err.Error(),
+		).Res()
+	}
+
+	passport, err := h.usecase.RefreshPassport(req)
+	if err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrBadRequest.Code,
+			string(refreshPassportErr),
+			err.Error(),
+		).Res()
+	}
+
+	return entities.NewResponse(c).Success(fiber.StatusOK, passport).Res()
+}
+
+func (h *usersHandler) SignOut(c *fiber.Ctx) error {
+	req := new(users.UserRemoveCredential)
+	if err := c.BodyParser(req); err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrBadRequest.Code,
+			string(signOutErr),
+			err.Error(),
+		).Res()
+	}
+
+	if err := h.usecase.DeleteOauth(req.OauthId); err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrBadRequest.Code,
+			string(signOutErr),
+			err.Error(),
+		).Res()
+	}
+
+	return entities.NewResponse(c).Success(fiber.StatusOK, nil).Res()
 }
