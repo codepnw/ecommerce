@@ -24,7 +24,7 @@ type moduleFactory struct {
 
 func InitModule(r fiber.Router, s *server, m middlewaresHandlers.IMiddlewaresHandlers) IModuleFactory {
 	return &moduleFactory{
-		r:  r,
+		r: r,
 		s: s,
 		m: m,
 	}
@@ -38,7 +38,7 @@ func InitMiddlewares(s *server) middlewaresHandlers.IMiddlewaresHandlers {
 
 func (m *moduleFactory) MonitorModule() {
 	handler := monitorHandlers.MonitorHandler(m.s.cfg)
-	
+
 	m.r.Get("/", handler.HealthCheck)
 }
 
@@ -55,5 +55,6 @@ func (m *moduleFactory) UsersModule() {
 	router.Post("/signout", handler.SignOut)
 	router.Post("/signup-admin", handler.SignOut)
 
-	router.Get("/admin/secret", m.m.JwtAuth(), handler.GenerateAdminToken)
+	router.Get("/:user_id", m.m.JwtAuth(), m.m.ParamsCheck(), handler.GetUserProfile)
+	router.Get("/secret", m.m.JwtAuth(), handler.GenerateAdminToken)
 }
