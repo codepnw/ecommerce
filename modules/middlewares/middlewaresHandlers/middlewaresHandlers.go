@@ -16,7 +16,8 @@ type middlewaresErrCode string
 
 const (
 	routerCheckErr middlewaresErrCode = "middleware-001"
-	jwtAuthErr middlewaresErrCode = "middleware-002"
+	jwtAuthErr     middlewaresErrCode = "middleware-002"
+	paramsCheckErr middlewaresErrCode = "middleware-003"
 )
 
 type IMiddlewaresHandlers interface {
@@ -24,16 +25,17 @@ type IMiddlewaresHandlers interface {
 	RouterCheck() fiber.Handler
 	Logger() fiber.Handler
 	JwtAuth() fiber.Handler
+	ParamsCheck() fiber.Handler
 }
 
 type middlewaresHandlers struct {
-	cfg                 config.IConfig
+	cfg     config.IConfig
 	usecase middlewaresUsecases.IMiddlewaresUsecases
 }
 
 func MiddlewaresHandlers(cfg config.IConfig, usecase middlewaresUsecases.IMiddlewaresUsecases) IMiddlewaresHandlers {
 	return &middlewaresHandlers{
-		cfg:                 cfg,
+		cfg:     cfg,
 		usecase: usecase,
 	}
 }
@@ -62,9 +64,9 @@ func (h *middlewaresHandlers) RouterCheck() fiber.Handler {
 
 func (h *middlewaresHandlers) Logger() fiber.Handler {
 	return logger.New(logger.Config{
-		Format: "${time} [${ip}] ${status} - ${method} ${path}\n",
+		Format:     "${time} [${ip}] ${status} - ${method} ${path}\n",
 		TimeFormat: "02/01/2006",
-		TimeZone: "Asia/Bangkok",
+		TimeZone:   "Asia/Bangkok",
 	})
 }
 
@@ -89,8 +91,22 @@ func (h *middlewaresHandlers) JwtAuth() fiber.Handler {
 			).Res()
 		}
 
-		c.Locals("user_id", claims.Id)
+		c.Locals("userId", claims.Id)
 		c.Locals("userRoleId", claims.RoleId)
+		return c.Next()
+	}
+}
+
+func (h *middlewaresHandlers) ParamsCheck() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		userId := c.Locals("userId")
+		if c.Params("user_id") != userId {
+			return entities.NewResponse(c).Error(
+				fiber.ErrUnauthorized.Code,
+				string(paramsCheckErr),
+				"never gonna give you up",
+			).Res()
+		}
 		return c.Next()
 	}
 }
