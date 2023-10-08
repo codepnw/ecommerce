@@ -1,9 +1,13 @@
 package middlewaresUsecases
 
-import "github.com/codepnw/ecommerce/modules/middlewares/middlewaresRepositories"
+import (
+	"github.com/codepnw/ecommerce/modules/middlewares"
+	"github.com/codepnw/ecommerce/modules/middlewares/middlewaresRepositories"
+)
 
 type IMiddlewaresUsecases interface {
 	FindAccessToken(userId, accessToken string) bool
+	FindRole() ([]*middlewares.Role, error)
 }
 
 type middlewaresUsecases struct {
@@ -18,4 +22,12 @@ func MiddlewaresUsecases(repository middlewaresRepositories.IMiddlewaresReposito
 
 func (u *middlewaresUsecases) FindAccessToken(userId, accessToken string) bool {
 	return u.repository.FindAccessToken(userId, accessToken)
+}
+
+func (u *middlewaresUsecases) FindRole() ([]*middlewares.Role, error) {
+	roles, err := u.repository.FindRole()
+	if err != nil {
+		return nil, err
+	}
+	return roles, nil
 }

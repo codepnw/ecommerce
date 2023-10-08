@@ -7,6 +7,7 @@ import (
 	"github.com/codepnw/ecommerce/modules/entities"
 	"github.com/codepnw/ecommerce/modules/middlewares/middlewaresUsecases"
 	"github.com/codepnw/ecommerce/pkg/auth"
+	"github.com/codepnw/ecommerce/pkg/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -18,6 +19,7 @@ const (
 	routerCheckErr middlewaresErrCode = "middleware-001"
 	jwtAuthErr     middlewaresErrCode = "middleware-002"
 	paramsCheckErr middlewaresErrCode = "middleware-003"
+	authorizeErr   middlewaresErrCode = "middleware-004"
 )
 
 type IMiddlewaresHandlers interface {
@@ -26,6 +28,7 @@ type IMiddlewaresHandlers interface {
 	Logger() fiber.Handler
 	JwtAuth() fiber.Handler
 	ParamsCheck() fiber.Handler
+	Authorize(expectRoleId ...int) fiber.Handler
 }
 
 type middlewaresHandlers struct {
@@ -108,5 +111,47 @@ func (h *middlewaresHandlers) ParamsCheck() fiber.Handler {
 			).Res()
 		}
 		return c.Next()
+	}
+}
+
+func (h *middlewaresHandlers) Authorize(expectRoleId ...int) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		userRoleId, ok := c.Locals("userRoleId").(int)
+		if !ok {
+			return entities.NewResponse(c).Error(
+				fiber.ErrUnauthorized.Code,
+				string(authorizeErr),
+				"user_id is not type int",
+			).Res()
+		}
+
+		roles, err := h.usecase.FindRole()
+		if err != nil {
+			return entities.NewResponse(c).Error(
+				fiber.ErrInternalServerError.Code,
+				string(authorizeErr),
+				err.Error(),
+			).Res()
+		}
+
+		sum := 0
+		for _, v := range expectRoleId {
+			sum += v
+		}
+
+		expectValue := utils.BinaryConverter(sum, len(roles))
+		userValue := utils.BinaryConverter(userRoleId, len(roles))
+
+		for i := range userValue {
+			if userValue[i] & expectValue[i] == 1 {
+				return c.Next()
+			}
+		}
+
+		return entities.NewResponse(c).Error(
+			fiber.ErrUnauthorized.Code,
+			string(authorizeErr),
+			"no permission to access",
+		).Res()
 	}
 }
