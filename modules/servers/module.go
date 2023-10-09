@@ -1,6 +1,9 @@
 package servers
 
 import (
+	"github.com/codepnw/ecommerce/modules/appinfo/appinfoHandlers"
+	"github.com/codepnw/ecommerce/modules/appinfo/appinfoRepositories"
+	"github.com/codepnw/ecommerce/modules/appinfo/appinfoUsecases"
 	"github.com/codepnw/ecommerce/modules/middlewares/middlewaresHandlers"
 	"github.com/codepnw/ecommerce/modules/middlewares/middlewaresRepositories"
 	"github.com/codepnw/ecommerce/modules/middlewares/middlewaresUsecases"
@@ -14,6 +17,7 @@ import (
 type IModuleFactory interface {
 	MonitorModule()
 	UsersModule()
+	AppinfoModule()
 }
 
 type moduleFactory struct {
@@ -49,12 +53,27 @@ func (m *moduleFactory) UsersModule() {
 
 	router := m.r.Group("/users")
 
-	router.Post("/signup", handler.SignUpCustomer)
-	router.Post("/signin", handler.SignIn)
-	router.Post("/refresh", handler.RefreshPassport)
-	router.Post("/signout", handler.SignOut)
-	router.Post("/signup-admin", handler.SignOut)
+	router.Post("/signup", m.m.ApiKeyAuth(), handler.SignUpCustomer)
+	router.Post("/signin", m.m.ApiKeyAuth(), handler.SignIn)
+	router.Post("/refresh", m.m.ApiKeyAuth(), handler.RefreshPassport)
+	router.Post("/signout", m.m.ApiKeyAuth(), handler.SignOut)
+	router.Post("/signup-admin", m.m.JwtAuth(), m.m.Authorize(2), handler.SignOut)
 
 	router.Get("/:user_id", m.m.JwtAuth(), m.m.ParamsCheck(), handler.GetUserProfile)
 	router.Get("/admin/secret", m.m.JwtAuth(), m.m.Authorize(2), handler.GenerateAdminToken)
+}
+
+func (m *moduleFactory) AppinfoModule() {
+	repository := appinfoRepositories.AppinfoRepository(m.s.db)
+	usecase := appinfoUsecases.AppinfoUsecase(repository)
+	handler := appinfoHandlers.AppinfoHandler(m.s.cfg, usecase)
+
+	router := m.r.Group("/appinfo")
+
+	router.Post("/categories", m.m.JwtAuth(), m.m.Authorize(2), handler.InsertCategory)
+
+	router.Get("/apikey", m.m.JwtAuth(), m.m.Authorize(2), handler.GenerateApiKey)
+	router.Get("/categories", m.m.ApiKeyAuth(), handler.FindCategory)
+
+	router.Delete("/:category_id/categories", m.m.JwtAuth(), m.m.Authorize(2), handler.DeleteCategory)
 }
