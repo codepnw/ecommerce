@@ -2,6 +2,7 @@ package appinfoHandlers
 
 import (
 	"github.com/codepnw/ecommerce/config"
+	"github.com/codepnw/ecommerce/modules/appinfo"
 	"github.com/codepnw/ecommerce/modules/appinfo/appinfoUsecases"
 	"github.com/codepnw/ecommerce/modules/entities"
 	"github.com/codepnw/ecommerce/pkg/auth"
@@ -12,10 +13,12 @@ type appinfoHandlerErrCode string
 
 const (
 	generateApiKeyErr appinfoHandlerErrCode = "appinfo-001"
+	findCategoryErr appinfoHandlerErrCode = "appinfo-002"
 )
 
 type IAppinfoHandler interface {
 	GenerateApiKey(c *fiber.Ctx) error
+	FindCategory(c *fiber.Ctx) error	
 }
 
 type appinfoHandler struct {
@@ -55,3 +58,24 @@ func (h *appinfoHandler) GenerateApiKey(c *fiber.Ctx) error {
 	).Res()
 }
 
+func (h *appinfoHandler) FindCategory(c *fiber.Ctx) error {
+	req := new(appinfo.CategoryFilter)
+	if err := c.QueryParser(req); err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrBadRequest.Code,
+			string(findCategoryErr),
+			err.Error(),
+		).Res()
+	}
+
+	category, err := h.usecase.FindCategory(req)
+	if err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrInternalServerError.Code,
+			string(findCategoryErr),
+			err.Error(),
+		).Res()
+	}
+
+	return entities.NewResponse(c).Success(fiber.StatusOK, category).Res()
+}
