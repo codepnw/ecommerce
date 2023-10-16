@@ -4,6 +4,8 @@ import (
 	"github.com/codepnw/ecommerce/modules/appinfo/appinfoHandlers"
 	"github.com/codepnw/ecommerce/modules/appinfo/appinfoRepositories"
 	"github.com/codepnw/ecommerce/modules/appinfo/appinfoUsecases"
+	"github.com/codepnw/ecommerce/modules/files/filesHandlers"
+	"github.com/codepnw/ecommerce/modules/files/filesUsecases"
 	"github.com/codepnw/ecommerce/modules/middlewares/middlewaresHandlers"
 	"github.com/codepnw/ecommerce/modules/middlewares/middlewaresRepositories"
 	"github.com/codepnw/ecommerce/modules/middlewares/middlewaresUsecases"
@@ -18,6 +20,7 @@ type IModuleFactory interface {
 	MonitorModule()
 	UsersModule()
 	AppinfoModule()
+	FilesModule()
 }
 
 type moduleFactory struct {
@@ -76,4 +79,13 @@ func (m *moduleFactory) AppinfoModule() {
 	router.Get("/categories", m.m.ApiKeyAuth(), handler.FindCategory)
 
 	router.Delete("/:category_id/categories", m.m.JwtAuth(), m.m.Authorize(2), handler.DeleteCategory)
+}
+
+func (m *moduleFactory) FilesModule() {
+	usecase := filesUsecases.FilesUsecase(m.s.cfg)
+	handler := filesHandlers.FilesHandler(m.s.cfg, usecase)
+
+	router := m.r.Group("/files")
+
+	router.Post("/upload", m.m.JwtAuth(), m.m.Authorize(2), handler.UploadFiles)
 }

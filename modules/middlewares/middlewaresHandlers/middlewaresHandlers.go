@@ -1,6 +1,7 @@
 package middlewaresHandlers
 
 import (
+	"net/http"
 	"strings"
 
 	"github.com/codepnw/ecommerce/config"
@@ -10,6 +11,7 @@ import (
 	"github.com/codepnw/ecommerce/pkg/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
@@ -20,7 +22,7 @@ const (
 	jwtAuthErr     middlewaresErrCode = "middleware-002"
 	paramsCheckErr middlewaresErrCode = "middleware-003"
 	authorizeErr   middlewaresErrCode = "middleware-004"
-	apiKeyErr   middlewaresErrCode = "middleware-005"
+	apiKeyErr      middlewaresErrCode = "middleware-005"
 )
 
 type IMiddlewaresHandlers interface {
@@ -31,6 +33,7 @@ type IMiddlewaresHandlers interface {
 	ParamsCheck() fiber.Handler
 	Authorize(expectRoleId ...int) fiber.Handler
 	ApiKeyAuth() fiber.Handler
+	StreamingFile() fiber.Handler
 }
 
 type middlewaresHandlers struct {
@@ -145,7 +148,7 @@ func (h *middlewaresHandlers) Authorize(expectRoleId ...int) fiber.Handler {
 		userValue := utils.BinaryConverter(userRoleId, len(roles))
 
 		for i := range userValue {
-			if userValue[i] & expectValue[i] == 1 {
+			if userValue[i]&expectValue[i] == 1 {
 				return c.Next()
 			}
 		}
@@ -170,4 +173,10 @@ func (h *middlewaresHandlers) ApiKeyAuth() fiber.Handler {
 		}
 		return c.Next()
 	}
+}
+
+func (h *middlewaresHandlers) StreamingFile() fiber.Handler {
+	return filesystem.New(filesystem.Config{
+		Root: http.Dir("./assets/images"),
+	})
 }

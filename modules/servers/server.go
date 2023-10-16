@@ -40,6 +40,7 @@ func (s *server) Start() {
 	middlewares := InitMiddlewares(s)
 	s.app.Use(middlewares.Logger())
 	s.app.Use(middlewares.Cors())
+	s.app.Use(middlewares.StreamingFile())
 
 	v1 := s.app.Group("v1")
 	modules := InitModule(v1, s, middlewares)
@@ -47,6 +48,7 @@ func (s *server) Start() {
 	modules.MonitorModule()
 	modules.UsersModule()
 	modules.AppinfoModule()
+	modules.FilesModule()
 
 	s.app.Use(middlewares.RouterCheck())
 
