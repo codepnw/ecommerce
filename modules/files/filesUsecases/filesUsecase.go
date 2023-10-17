@@ -14,6 +14,7 @@ import (
 
 type IFilesUsecase interface {
 	UploadToStorage(req []*files.FileReq) ([]*files.FileRes, error)
+	DeleteFileOnStorage(req []*files.DeleteFileReq) error
 }
 
 type filesUsecase struct {
