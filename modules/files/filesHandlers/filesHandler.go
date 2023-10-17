@@ -18,10 +18,12 @@ type filesHanldersErr string
 
 const (
 	uploadFilesErr filesHanldersErr = "files-001"
+	deleteErr      filesHanldersErr = "files-002"
 )
 
 type IFilesHandler interface {
 	UploadFiles(c *fiber.Ctx) error
+	DeleteFile(c *fiber.Ctx) error
 }
 
 type filesHandler struct {
@@ -94,4 +96,24 @@ func (h *filesHandler) UploadFiles(c *fiber.Ctx) error {
 	}
 
 	return entities.NewResponse(c).Success(fiber.StatusCreated, res).Res()
+}
+
+func (h *filesHandler) DeleteFile(c *fiber.Ctx) error {
+	req := make([]*files.DeleteFileReq, 0)
+	if err := c.BodyParser(&req); err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrBadRequest.Code,
+			string(deleteErr),
+			err.Error(),
+		).Res()
+	}
+
+	if err := h.usecase.DeleteFileOnStorage(req); err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrInternalServerError.Code,
+			string(deleteErr),
+			err.Error(),
+		).Res()
+	}
+	return entities.NewResponse(c).Success(fiber.StatusOK, nil).Res()
 }
