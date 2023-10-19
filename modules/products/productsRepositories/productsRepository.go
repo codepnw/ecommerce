@@ -8,11 +8,13 @@ import (
 	"github.com/codepnw/ecommerce/modules/entities"
 	"github.com/codepnw/ecommerce/modules/files/filesUsecases"
 	"github.com/codepnw/ecommerce/modules/products"
+	"github.com/codepnw/ecommerce/modules/products/productsPatterns"
 	"github.com/jmoiron/sqlx"
 )
 
 type IProductsRepository interface {
 	FindOneProduct(productId string) (*products.Product, error) 
+	FindProduct(req *products.ProductFilter) ([]*products.Product, int)
 }
 
 type productRepository struct {
@@ -84,3 +86,13 @@ func (r *productRepository) FindOneProduct(productId string) (*products.Product,
 
 	return product, nil
 }
+
+func (r productRepository) FindProduct(req *products.ProductFilter) ([]*products.Product, int) {
+	builder := productsPatterns.FindProductBuilder(r.db, req)
+	engineer := productsPatterns.FindProductEngineer(builder)
+
+	result := engineer.FindProduct().Result()
+	count := engineer.FindProduct().Count()
+
+	return result, count
+} 

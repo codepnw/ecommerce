@@ -41,7 +41,7 @@ func (r *Response) Error(code int, traceId, msg string) IResponse {
 	r.StatusCode = code
 	r.ErrorRes = &ErrorResponse{
 		TraceId: traceId,
-		Msg: msg,
+		Msg:     msg,
 	}
 	r.IsError = true
 	logger.InitLogger(r.Context, &r.ErrorRes).Print().Save()
@@ -55,4 +55,12 @@ func (r *Response) Res() error {
 		}
 		return &r.Data
 	}())
+}
+
+type PaginateRes struct {
+	Data      any `json:"data"`
+	Page      int `json:"page"`
+	Limit     int `json:"limit"`
+	TotalPage int `json:"total_page"`
+	TotalItem int `json:"total_item"`
 }

@@ -1,12 +1,16 @@
 package productsUsecases
 
 import (
+	"math"
+
+	"github.com/codepnw/ecommerce/modules/entities"
 	"github.com/codepnw/ecommerce/modules/products"
 	"github.com/codepnw/ecommerce/modules/products/productsRepositories"
 )
 
 type IProductsUsecase interface {
 	FindOneProduct(productId string) (*products.Product, error)
+	FindProduct(req *products.ProductFilter) *entities.PaginateRes
 }
 
 type productsUsecase struct {
@@ -23,4 +27,16 @@ func (u *productsUsecase) FindOneProduct(productId string) (*products.Product, e
 		return nil, err
 	}
 	return product, nil
+}
+
+func (u *productsUsecase) FindProduct(req *products.ProductFilter) *entities.PaginateRes {
+	products, count := u.repository.FindProduct(req)
+
+	return &entities.PaginateRes{
+		Data: products,
+		Page: req.Page,
+		Limit: req.Limit,
+		TotalItem: count,
+		TotalPage: int(math.Ceil(float64(count) / float64(req.Limit))),
+	}
 }
