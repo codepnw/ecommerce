@@ -37,6 +37,7 @@ func (u *filesUsecase) uploadToStorageWorker(ctx context.Context, jobs <-chan *f
 			errs <- err
 			return
 		}
+
 		b, err := io.ReadAll(cotainer)
 		if err != nil {
 			errs <- err

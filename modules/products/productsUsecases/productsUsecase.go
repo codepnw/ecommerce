@@ -1,1 +1,42 @@
 package productsUsecases
+
+import (
+	"math"
+
+	"github.com/codepnw/ecommerce/modules/entities"
+	"github.com/codepnw/ecommerce/modules/products"
+	"github.com/codepnw/ecommerce/modules/products/productsRepositories"
+)
+
+type IProductsUsecase interface {
+	FindOneProduct(productId string) (*products.Product, error)
+	FindProduct(req *products.ProductFilter) *entities.PaginateRes
+}
+
+type productsUsecase struct {
+	repository productsRepositories.IProductsRepository
+}
+
+func ProductsUsecase(repository productsRepositories.IProductsRepository) IProductsUsecase {
+	return &productsUsecase{repository: repository}
+}
+
+func (u *productsUsecase) FindOneProduct(productId string) (*products.Product, error) {
+	product, err := u.repository.FindOneProduct(productId)
+	if err != nil {
+		return nil, err
+	}
+	return product, nil
+}
+
+func (u *productsUsecase) FindProduct(req *products.ProductFilter) *entities.PaginateRes {
+	products, count := u.repository.FindProduct(req)
+
+	return &entities.PaginateRes{
+		Data: products,
+		Page: req.Page,
+		Limit: req.Limit,
+		TotalItem: count,
+		TotalPage: int(math.Ceil(float64(count) / float64(req.Limit))),
+	}
+}
