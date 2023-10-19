@@ -3,7 +3,7 @@ package files
 import "mime/multipart"
 
 type FileReq struct {
-	File        *multipart.FileHeader `form:"files"`
+	File        *multipart.FileHeader `form:"file"`
 	Destination string                `form:"destination"`
 	Extension   string
 	FileName    string
@@ -15,5 +15,5 @@ type FileRes struct {
 }
 
 type DeleteFileReq struct {
-	Destination string `form:"destination"`
+	Destination string `json:"destination"`
 }

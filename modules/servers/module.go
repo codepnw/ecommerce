@@ -10,6 +10,9 @@ import (
 	"github.com/codepnw/ecommerce/modules/middlewares/middlewaresRepositories"
 	"github.com/codepnw/ecommerce/modules/middlewares/middlewaresUsecases"
 	monitorHandlers "github.com/codepnw/ecommerce/modules/monitor/handlers"
+	"github.com/codepnw/ecommerce/modules/products/productsHandlers"
+	"github.com/codepnw/ecommerce/modules/products/productsRepositories"
+	"github.com/codepnw/ecommerce/modules/products/productsUsecases"
 	"github.com/codepnw/ecommerce/modules/users/usersHandlers"
 	"github.com/codepnw/ecommerce/modules/users/usersRepositories"
 	"github.com/codepnw/ecommerce/modules/users/usersUsecases"
@@ -21,6 +24,7 @@ type IModuleFactory interface {
 	UsersModule()
 	AppinfoModule()
 	FilesModule()
+	ProductsModule()
 }
 
 type moduleFactory struct {
@@ -89,4 +93,16 @@ func (m *moduleFactory) FilesModule() {
 
 	router.Post("/upload", m.m.JwtAuth(), m.m.Authorize(2), handler.UploadFiles)
 	router.Patch("/delete", m.m.JwtAuth(), m.m.Authorize(2), handler.DeleteFile)
+}
+
+func (m *moduleFactory) ProductsModule() {
+	filesUsecase := filesUsecases.FilesUsecase(m.s.cfg)
+
+	repository := productsRepositories.ProductsRepository(m.s.db, m.s.cfg, filesUsecase)
+	usecase := productsUsecases.ProductsUsecase(repository)
+	handlers := productsHandlers.ProductsHandler(m.s.cfg, usecase, filesUsecase)
+
+	router := m.r.Group("/products")
+
+	router.Get("/:product_id", m.m.ApiKeyAuth(), handlers.FindOneProduct)
 }
