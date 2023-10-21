@@ -53,6 +53,7 @@ func (b *findProductBuilder) initQuery() {
 			"p"."id",
 			"p"."title",
 			"p"."description",
+			"p"."price",
 			(
 				SELECT
 					to_jsonb("ct")
@@ -153,14 +154,14 @@ func (b *findProductBuilder) sort() {
 	}
 
 	b.values = append(b.values, b.req.OrderBy)
-	b.query += fmt.Sprintf(`ORDER BY $%d %s`, b.lastStackIndex+1, b.req.Sort)
+	b.query += fmt.Sprintf(`	ORDER BY $%d %s`, b.lastStackIndex+1, b.req.Sort)
 	b.lastStackIndex = len(b.values)
 }
 
 func (b *findProductBuilder) paginate() {
 	b.values = append(b.values, (b.req.Page-1)*b.req.Limit, b.req.Limit)
 
-	b.query += fmt.Sprintf(`OFFSET $%d LIMIT $%d`, b.lastStackIndex+1, b.lastStackIndex+2)
+	b.query += fmt.Sprintf(`	OFFSET $%d LIMIT $%d`, b.lastStackIndex+1, b.lastStackIndex+2)
 	b.lastStackIndex = len(b.values)
 }
 
