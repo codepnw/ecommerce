@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/codepnw/ecommerce/config"
+	"github.com/codepnw/ecommerce/modules/appinfo"
 	"github.com/codepnw/ecommerce/modules/entities"
 	"github.com/codepnw/ecommerce/modules/files/filesUsecases"
 	"github.com/codepnw/ecommerce/modules/products"
@@ -16,11 +17,13 @@ type productsHnadlerErrCode string
 const (
 	findOneProductErr productsHnadlerErrCode = "products-001"
 	findProductErr    productsHnadlerErrCode = "products-002"
+	insertProductErr    productsHnadlerErrCode = "products-003"
 )
 
 type IProductsHandler interface {
 	FindOneProduct(c *fiber.Ctx) error
 	FindProduct(c *fiber.Ctx) error
+	InsertProduct(c *fiber.Ctx) error
 }
 
 type productsHnalder struct {
@@ -84,4 +87,38 @@ func (h *productsHnalder) FindProduct(c *fiber.Ctx) error {
 
 	products := h.usecase.FindProduct(req)
 	return entities.NewResponse(c).Success(fiber.StatusOK, products).Res()
+}
+
+func (h *productsHnalder) InsertProduct(c *fiber.Ctx) error {
+	req := &products.Product{
+		Category: &appinfo.Category{},
+		Images: make([]*entities.Image, 0),
+	}
+
+	if err := c.BodyParser(req); err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrBadRequest.Code,
+			string(insertProductErr),
+			err.Error(),
+		).Res()
+	}
+
+	if req.Category.Id <= 0 {
+		return entities.NewResponse(c).Error(
+			fiber.ErrBadRequest.Code,
+			string(insertProductErr),
+			"category id is invalid",
+		).Res()
+	}
+
+	product, err := h.usecase.InsertProduct(req)
+	if err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrInternalServerError.Code,
+			string(insertProductErr),
+			err.Error(),
+		).Res()
+	}
+
+	return entities.NewResponse(c).Success(fiber.StatusOK, product).Res()
 }
