@@ -132,4 +132,6 @@ func (m *moduleFactory) OrdersModule() {
 
 	router.Get("/", m.m.JwtAuth(), m.m.Authorize(2), handler.FindOrder)
 	router.Get("/:user_id/:order_id", m.m.JwtAuth(), m.m.ParamsCheck(), handler.FindOneOrder)
+
+	router.Patch("/:user_id/:order_id", m.m.JwtAuth(), m.m.ParamsCheck(), handler.UpdateOrder)
 }
