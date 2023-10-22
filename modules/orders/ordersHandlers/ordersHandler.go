@@ -2,9 +2,11 @@ package ordersHandlers
 
 import (
 	"strings"
+	"time"
 
 	"github.com/codepnw/ecommerce/config"
 	"github.com/codepnw/ecommerce/modules/entities"
+	"github.com/codepnw/ecommerce/modules/orders"
 	"github.com/codepnw/ecommerce/modules/orders/ordersUsecases"
 	"github.com/gofiber/fiber/v2"
 )
@@ -13,20 +15,22 @@ type ordersHandlersErrCode string
 
 const (
 	findOneOrderErr ordersHandlersErrCode = "orders-001"
+	findOrderErr    ordersHandlersErrCode = "orders-002"
 )
 
 type IOrdersHandler interface {
 	FindOneOrder(c *fiber.Ctx) error
+	FindOrder(c *fiber.Ctx) error
 }
 
 type ordersHandler struct {
-	cfg           config.IConfig
+	cfg     config.IConfig
 	usecase ordersUsecases.IOrdersUsecase
 }
 
 func OrdersHandler(cfg config.IConfig, usecase ordersUsecases.IOrdersUsecase) IOrdersHandler {
 	return &ordersHandler{
-		cfg:           cfg,
+		cfg:     cfg,
 		usecase: usecase,
 	}
 }
@@ -44,4 +48,77 @@ func (h *ordersHandler) FindOneOrder(c *fiber.Ctx) error {
 	}
 
 	return entities.NewResponse(c).Success(fiber.StatusOK, order).Res()
+}
+
+func (h *ordersHandler) FindOrder(c *fiber.Ctx) error {
+	req := &orders.OrderFilter{
+		SortReq:       &entities.SortReq{},
+		PaginationReq: &entities.PaginationReq{},
+	}
+
+	if err := c.QueryParser(req); err != nil {
+		return entities.NewResponse(c).Error(
+			fiber.ErrBadRequest.Code,
+			string(findOrderErr),
+			err.Error(),
+		).Res()
+	}
+
+	if req.Page < 1 {
+		req.Page = 1
+	}
+
+	if req.Limit < 5 {
+		req.Limit = 5
+	}
+
+	orderByMap := map[string]string{
+		"id":         `"o"."id"`,
+		"created_at": `"o"."created_at"`,
+	}
+	if orderByMap[req.OrderBy] == "" {
+		req.OrderBy = orderByMap["id"]
+	}
+
+	req.Sort = strings.ToUpper(req.Sort)
+	sortMap := map[string]string{
+		"DESC": "DESC",
+		"ASC":  "ASC",
+	}
+	if sortMap[req.Sort] == "" {
+		req.Sort = sortMap["DESC"]
+	}
+
+	if req.StartDate != "" {
+		start, err := time.Parse("2006-01-02", req.StartDate)
+		if err != nil {
+			return entities.NewResponse(c).Error(
+				fiber.ErrBadRequest.Code,
+				string(findOrderErr),
+				"start date is invalid",
+			).Res()
+		}
+		req.StartDate = start.Format("2006-01-02")
+	}
+
+	if req.EndDate != "" {
+		end, err := time.Parse("2006-01-02", req.EndDate)
+		if err != nil {
+			return entities.NewResponse(c).Error(
+				fiber.ErrBadRequest.Code,
+				string(findOrderErr),
+				"end date is invalid",
+			).Res()
+		}
+		req.EndDate = end.Format("2006-01-02")
+	}
+
+	// req.StartDate = start.Format("2006-01-02")
+	// req.EndDate = end.Format("2006-01-02")
+
+
+	return entities.NewResponse(c).Success(
+		fiber.StatusOK,
+		h.usecase.FindOrder(req),
+	).Res()
 }
