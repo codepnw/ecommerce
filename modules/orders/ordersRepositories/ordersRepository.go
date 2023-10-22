@@ -12,6 +12,7 @@ import (
 type IOrdersRepository interface {
 	FindOneOrder(orderId string) (*orders.Order, error)
 	FindOrder(req *orders.OrderFilter) ([]*orders.Order, int)
+	InsertOrder(req *orders.Order) (string, error)
 }
 
 type ordersRepository struct {
@@ -79,3 +80,13 @@ func (r *ordersRepository) FindOrder(req *orders.OrderFilter) ([]*orders.Order, 
 
 	return engineer.FindOrder(), engineer.CountOrder()
 }
+
+func (r *ordersRepository) InsertOrder(req *orders.Order) (string, error) {
+	builder := ordersPatterns.InsertOrderBuilder(r.db, req)
+	orderId, err := ordersPatterns.InsertOrderEngineer(builder).InsertOrder()
+	if err != nil {
+		return "", err
+	}
+	return orderId, nil
+}
+
