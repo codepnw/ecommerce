@@ -128,5 +128,5 @@ func (m *moduleFactory) OrdersModule() {
 
 	router := m.r.Group("/orders")
 
-	router.Get("/:order_id", m.m.JwtAuth(), m.m.Authorize(2), handler.FindOneOrder)
+	router.Get("/:order_id", m.m.JwtAuth(), m.m.ParamsCheck(), handler.FindOneOrder)
 }
