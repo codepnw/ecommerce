@@ -10,6 +10,9 @@ import (
 	"github.com/codepnw/ecommerce/modules/middlewares/middlewaresRepositories"
 	"github.com/codepnw/ecommerce/modules/middlewares/middlewaresUsecases"
 	monitorHandlers "github.com/codepnw/ecommerce/modules/monitor/handlers"
+	"github.com/codepnw/ecommerce/modules/orders/ordersHandlers"
+	"github.com/codepnw/ecommerce/modules/orders/ordersRepositories"
+	"github.com/codepnw/ecommerce/modules/orders/ordersUsecases"
 	"github.com/codepnw/ecommerce/modules/products/productsHandlers"
 	"github.com/codepnw/ecommerce/modules/products/productsRepositories"
 	"github.com/codepnw/ecommerce/modules/products/productsUsecases"
@@ -25,6 +28,7 @@ type IModuleFactory interface {
 	AppinfoModule()
 	FilesModule()
 	ProductsModule()
+	OrdersModule()
 }
 
 type moduleFactory struct {
@@ -112,4 +116,17 @@ func (m *moduleFactory) ProductsModule() {
 
 	router.Delete("/:product_id", m.m.JwtAuth(), m.m.Authorize(2), handlers.DeleteProduct)
 
+}
+
+func (m *moduleFactory) OrdersModule() {
+	filesUsecase := filesUsecases.FilesUsecase(m.s.cfg)
+	productsRepository := productsRepositories.ProductsRepository(m.s.db, m.s.cfg, filesUsecase)
+
+	ordersRepository := ordersRepositories.OrdersRepository(m.s.db)
+	usecase := ordersUsecases.OrdersUsecase(ordersRepository, productsRepository)
+	handler := ordersHandlers.OrdersHandler(m.s.cfg, usecase)
+
+	router := m.r.Group("/orders")
+
+	router.Get("/:order_id", m.m.JwtAuth(), m.m.Authorize(2), handler.FindOneOrder)
 }
