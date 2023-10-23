@@ -99,8 +99,7 @@ func (b *findProductBuilder) whereQuery() {
 	// check id
 	if b.req.Id != "" {
 		b.values = append(b.values, b.req.Id)
-
-		queryWhereStack = append(queryWhereStack, `AND "p"."id" = ?`)
+		queryWhereStack = append(queryWhereStack, `	AND "p"."id" = ?`)
 	}
 
 	// check search
