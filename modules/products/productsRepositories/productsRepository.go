@@ -44,6 +44,7 @@ func (r *productRepository) FindOneProduct(productId string) (*products.Product,
 			"p"."id",
 			"p"."title",
 			"p"."description",
+			"p"."price",
 			(
 				SELECT
 					to_jsonb("ct")
